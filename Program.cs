@@ -1,13 +1,21 @@
 // Provides us with APIs that we can use for our host
 using Microsoft.AspNetCore.Http.HttpResults;
+using Microsoft.AspNetCore.Rewrite;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Allow us to make route handlers
 var app = builder.Build();
 
-// Start server
-app.Run();
+// Redirect the user to /todos route when they want to took for a task
+app.UseRewriter(new RewriteOptions().AddRedirect("tasks/(.*)", "todos/$1"));
+// Custom middleware to log information about the HTTP Method
+app.Use( async (context, next) =>{
+    Console.WriteLine($"[ {context.Request.Method} {context.Request.Path} {DateTime.UtcNow} ] Started.");
+    await next(context);
+    Console.WriteLine($"[ {context.Request.Method} {context.Request.Path} {DateTime.UtcNow} ] Completed.");
+});
+
 
 // Create a list 
 var todos = new List<Todo>();
@@ -38,6 +46,8 @@ app.MapDelete("/todos/{id}", (int id) =>
     return TypedResults.NoContent();
 });
 
-// [ Record]: Simple immutable data model
-public record Todo(int id, string Name, DateTime DueDate, bool IsCompleted);
+// Start server
+app.Run();
 
+// [ Record]: Simple immutable data model
+public record Todo(int id, string name, DateTime dueDate, bool isCompleted);
